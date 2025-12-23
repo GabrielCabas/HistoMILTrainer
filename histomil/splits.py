@@ -18,12 +18,11 @@ class SplitManager:
         self.folds = args.folds
         self.output_path = f"{self.splits_dir}/{self.output_name}/"
         os.makedirs(self.output_path, exist_ok=True)
-        self.check_csv()
+        self.__check_csv()
         
     def __create_split(self):
         """Extracts train, test and val from the same dataset"""
-        data = pd.read_csv(self.csv_path)
-        data = data.rename(columns={self.target: "label"})
+        data = self.__load_dataset()
         grouped = data.groupby(by=["case_id", "label"], as_index=False).first()[["case_id", "label"]]
         train_grouped, test_grouped = train_test_split(grouped, test_size=self.test_frac)
         train_grouped, val_grouped = train_test_split(train_grouped, test_size=self.test_frac)
@@ -44,6 +43,14 @@ class SplitManager:
         data = data.fillna(False)
         data.index.name = None
         return data
+
+    def __check_csv(self):
+        """Checks if the CSV file contains the required columns"""
+        data_check = pd.read_csv(self.csv_path, nrows=1)
+        required_columns = ["case_id", "slide_id", self.target]
+        missing_columns = [col for col in required_columns if col not in data_check.columns]
+        if missing_columns:
+            raise ValueError(f"CSV file must contain the columns: {', '.join(missing_columns)}")
 
     def create_splits(self):
         """Creates splits for the dataset"""
@@ -66,10 +73,10 @@ class SplitManager:
             print(summary)
             summary.to_csv(f"{output_path}/splits_{i}_descriptor.csv", index=False)
 
-    def check_csv(self):
-        """Checks if the CSV file contains the required columns"""
-        data_check = pd.read_csv(self.csv_path, nrows=1)
-        required_columns = ["case_id", "slide_id", self.target]
-        missing_columns = [col for col in required_columns if col not in data_check.columns]
-        if missing_columns:
-            raise ValueError(f"CSV file must contain the columns: {', '.join(missing_columns)}")
+    def __load_dataset(self):
+        """Load the dataset and save it in the output path"""
+        data = pd.read_csv(self.csv_path)
+        data = data.rename(columns={self.target: "label"})
+        data = data[["case_id", "slide_id", "label"]]
+        data.to_csv(f"{self.output_path}/dataset.csv", index=False)
+        return data
