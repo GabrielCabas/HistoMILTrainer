@@ -9,7 +9,6 @@ from sklearn.model_selection import train_test_split
 class SplitManager:
     """Splits manager class"""
     def __init__(self, args):
-        self.args = args
         self.csv_path = args.csv_path
         self.target = args.target
         self.test_frac = args.test_frac
