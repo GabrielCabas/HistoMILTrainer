@@ -40,6 +40,13 @@ if __name__ == "__main__":
     parser.add_argument("--external_test_csv", type=str, default=None) #Optional, if is provided, it's used as test set.
     args = parser.parse_args()
     csv_path = os.path.basename(args.csv_path).replace(".csv", "")
+    # INSERT_YOUR_CODE
+    # Validar que el dataset tiene las columnas "case_id" y "slide_id"
+    data_check = pd.read_csv(args.csv_path, nrows=1)
+    required_columns = ["case_id", "slide_id"]
+    missing_columns = [col for col in required_columns if col not in data_check.columns]
+    if missing_columns:
+        raise ValueError(f"CSV file must contain the columns: {', '.join(missing_columns)}")
 
     for i in tqdm(range(args.folds)):
         #We have two options
