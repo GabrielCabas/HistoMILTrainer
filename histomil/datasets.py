@@ -32,7 +32,7 @@ class H5Dataset(Dataset):
         self.variable_patches = variable_patches
 
     @staticmethod
-    def drop_extention(filepath):
+    def drop_extension(filepath):
         filename = Path(filepath)
         return filename.stem
 
@@ -41,7 +41,10 @@ class H5Dataset(Dataset):
         
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        with h5py.File(os.path.join(self.feats_path, self.drop_extention(row['slide_id']) + '.h5'), "r") as f:
+        h5_path = os.path.join(self.feats_path, self.drop_extension(row['slide_id']) + '.h5')
+        if not os.path.exists(h5_path):
+            raise FileNotFoundError(f"Feature file not found: {h5_path}")
+        with h5py.File(h5_path, "r") as f:
             features = torch.from_numpy(f["features"][:])
         label = torch.tensor(row[self.label_col], dtype=torch.float32)
         return features, label

@@ -22,7 +22,15 @@ def train(model, train_loader, val_loader, results_dir, learning_rate, fold, epo
     early_stopping = EarlyStopping(patience=patience, stop_epoch=stop_epoch, verbose=True)
     print("Start training")
 
-    best_metrics = {}
+    best_metrics = {
+        "epoch": 0,
+        "train_loss": float('inf'),
+        "train_auc": 0.0,
+        "train_acc": 0.0,
+        "val_loss": float('inf'),
+        "val_auc": 0.0,
+        "val_acc": 0.0,
+    }
 
     for epoch in range(epochs):
         # Training
