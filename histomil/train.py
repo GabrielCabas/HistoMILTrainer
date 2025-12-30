@@ -46,7 +46,7 @@ def train(model, train_loader, val_loader, results_dir, learning_rate, fold,
                 features = features.unsqueeze(0)
                 
                 # Forward pass
-                if model_name == "clam":
+                if model_name in ["clam", "dftd"]:
                     logits, attn = model(features, label, criterion)  # Shape: (1, 2)
                 else:
                     logits, attn = model(features)
@@ -94,7 +94,7 @@ def train(model, train_loader, val_loader, results_dir, learning_rate, fold,
                     features = features.unsqueeze(0)
                     
                     # Forward pass
-                    if model_name == "clam":
+                    if model_name in ["clam", "dftd"]:
                         logits, attn = model(features, label, criterion)  # Shape: (1, 2)
                     else:
                         logits, attn = model(features)
@@ -165,7 +165,7 @@ def test(model, test_loader, class_weights = None, model_name = None):
                 features = features.unsqueeze(0)
                 
                 # Forward pass
-                if model_name == "clam":
+                if model_name in ["clam", "dftd"]:
                     logits, attn = model(features, label, criterion)  # Shape: (1, 2)
                 else:
                     logits, attn = model(features)
