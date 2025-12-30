@@ -1,6 +1,6 @@
 # HistoMIL
 
-A library for training Multi-Instance Learning (MIL) architectures from [MIL-Lab](https://github.com/AMLab-Amsterdam/MIL) on histology datasets. HistoMIL provides a unified interface to train and evaluate various state-of-the-art MIL models for whole slide image (WSI) analysis.
+A library for training Multi-Instance Learning (MIL) architectures from [MIL-Lab](https://github.com/mahmoodlab/MIL-Lab) on histology datasets. HistoMIL provides a unified interface to train and evaluate various state-of-the-art MIL models for whole slide image (WSI) analysis.
 
 ## Overview
 
@@ -24,7 +24,7 @@ HistoMIL offers a streamlined framework to train MIL architectures on histology 
 - **Feature Extraction Integration**: Works seamlessly with pre-extracted patch features (e.g., from TRIDENT)
 - **Class Weighting**: Automatic class weight calculation for imbalanced datasets
 - **Early Stopping**: Prevent overfitting with configurable early stopping
-- **MLflow Integration**: Optional experiment tracking with MLflow
+- **Case-Level Splitting**: Prevents data leakage by splitting at the case level
 
 ## Installation
 
@@ -58,8 +58,11 @@ Each H5 file should contain:
 ### 2. Create Dataset CSV
 
 Create a CSV file with columns:
+- `case_id`: Unique identifier for each case (patient)
 - `slide_id`: Unique identifier for each slide
-- `label`: Target label for classification
+- `target`: Target label for classification (or specify custom column name with `--target`)
+
+**Important**: Splits are created at the case level to prevent data leakage. Multiple slides from the same case will always be in the same split.
 
 ### 3. Generate Splits
 
@@ -69,8 +72,11 @@ python make_splits.py \
   --splits_dir ./splits/ \
   --output_name my_task \
   --folds 10 \
-  --test_frac 0.2
+  --test_frac 0.2 \
+  --target target
 ```
+
+**Note**: The `--target` argument specifies the column name for labels (default: "target"). Splits are stratified at the case level to ensure no data leakage between train/val/test sets.
 
 ### 4. Train a Model
 
@@ -79,13 +85,15 @@ python main.py \
   --fold 0 \
   --features_path ./features/ \
   --splits_dir ./splits/my_task/ \
-  --csv_path ./data/dataset.csv \
-  --model abmil \
-  --pretrained_model uni_v2 \
+  --csv_path ./splits/my_task/dataset.csv \
+  --mil abmil \
+  --feature_extractor uni_v2 \
   --results_dir ./results/abmil/ \
   --epochs 20 \
   --learning_rate 4e-4
 ```
+
+**Note**: The `--csv_path` should point to the `dataset.csv` file generated in the splits directory (e.g., `./splits/my_task/dataset.csv`).
 
 ### 5. Run Multiple Folds (SLURM)
 
@@ -104,23 +112,23 @@ sbatch run_clam.sh
 ```bash
 python main.py \
   --fold <fold_number>              # Cross-validation fold (0-9)
-  --features_path <path>            # Path to H5 feature files
+  --features_path <path>            # Path to H5 feature files directory
   --splits_dir <path>               # Directory containing split files
-  --csv_path <path>                 # Path to dataset CSV
-  --model <model_name>              # Model: abmil, clam, dsmil, dftd, etc.
-  --pretrained_model <name>         # Feature extractor: uni_v2, etc.
-  --results_dir <path>              # Output directory for results
+  --csv_path <path>                 # Path to dataset CSV (usually in splits_dir)
+  --mil <model_name>                # MIL architecture: abmil, clam, dsmil, dftd, etc.
+  --feature_extractor <name>        # Feature extractor: uni_v2, etc.
+  --results_dir <path>              # Output directory for results (default: ./temp_dir/)
   --epochs <int>                    # Number of training epochs (default: 3)
   --learning_rate <float>           # Learning rate (default: 4e-4)
-  --use_class_weights <bool>       # Use class weights (default: True)
-  --mlflow_dir <path>               # MLflow tracking directory (optional)
-  --mlflow_exp <name>               # MLflow experiment name (optional)
+  --use_class_weights <bool>        # Use class weights (default: True)
 ```
 
 ### Supported Models
 
+Use the `--mil` argument to specify the architecture:
+
 - `abmil` - Attention-based MIL
-- `clam` - CLAM architecture
+- `clam` - CLAM architecture (requires batch_size=1)
 - `dsmil` - Dual-stream MIL
 - `dftd` - Deep Feature Top-Down
 - `ilra` - Instance-Level Representation Aggregation
@@ -129,33 +137,7 @@ python main.py \
 - `transmil` - Transductive MIL
 - `wikg` - Weighted Instance Knowledge Graph
 
-### Python API
-
-```python
-from histomil import import_model, H5Dataset, train, test
-from histomil.utils import get_embed_dim, seed_torch
-import torch
-
-# Set up
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-seed_torch(2)
-embed_dim = get_embed_dim("uni_v2")
-
-# Load model
-model = import_model("abmil", "uni_v2").to(device)
-
-# Create dataset
-dataset = H5Dataset(
-    features_path="./features/",
-    df=dataset_df,
-    split="train",
-    variable_patches=True
-)
-
-# Train and evaluate
-trained_model, metrics = train(model, train_loader, val_loader, ...)
-test_metrics = test(trained_model, test_loader, ...)
-```
+**Note**: CLAM automatically sets batch_size to 1 during training.
 
 ## Project Structure
 
@@ -169,15 +151,22 @@ HistoMIL/
 │   └── utils.py        # Utility functions
 ├── main.py             # Main training script
 ├── make_splits.py      # Split generation script
-├── run_*.sh            # SLURM job scripts for different models
-└── splits/             # Generated split files
 ```
 
 ## Output
 
+### Training Output
+
 Training produces:
-- `{fold}-checkpoint.pt`: Best model checkpoint
-- `{fold}.csv`: Training and test metrics (AUC, accuracy, F1, etc.)
+- `{fold}-checkpoint.pt`: Best model checkpoint (saved in `results_dir`)
+- `{fold}.csv`: Training and test metrics (AUC, accuracy, F1, precision, recall, etc.)
+
+### Split Generation Output
+
+The `make_splits.py` script generates:
+- `dataset.csv`: Processed dataset with case_id, slide_id, and label columns
+- `splits_{fold}_bool.csv`: Boolean splits for each fold (train/val/test columns)
+- `splits_{fold}_descriptor.csv`: Summary statistics for each split
 
 ## Requirements
 
@@ -189,6 +178,8 @@ Training produces:
 - tqdm
 - h5py
 - MIL-Lab (for model architectures)
+
+**Note**: Make sure MIL-Lab is properly installed and accessible in your Python path. The `import_model` function relies on `src.builder.create_model` from MIL-Lab.
 
 ## Citation
 
