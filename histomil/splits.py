@@ -3,8 +3,8 @@ Splits manager module
 """
 import os
 import pandas as pd
-from tqdm import tqdm
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
+
 
 class SplitManager:
     """Splits manager class"""
@@ -19,32 +19,50 @@ class SplitManager:
         os.makedirs(self.output_path, exist_ok=True)
         self.__check_csv()
         
-    def __create_split(self):
-        """Extracts train, test and val from the same dataset"""
+    def __create_split(self, fold_idx):
+        """Creates train, val, and test splits using KFold for train/val"""
         data = self.__load_dataset()
-        grouped = data.groupby(by=["case_id", "label"], as_index=False).first()[["case_id", "label"]]
-        train_grouped, test_grouped = train_test_split(grouped, test_size=self.test_frac, random_state=42)
-        train_grouped, val_grouped = train_test_split(train_grouped, test_size=self.test_frac)
-        train = train_grouped.merge(data, on=["case_id", "label"])
-        val = val_grouped.merge(data, on=["case_id", "label"])
-        test = test_grouped.merge(data, on=["case_id", "label"])
-
-        train.index = train.slide_id
-        val.index = val.slide_id
-        test.index = test.slide_id
-
-        # Initialize boolean columns directly to avoid FutureWarning
-        train["train"] = pd.Series(True, dtype=bool, index=train.index)
-        val["val"] = pd.Series(True, dtype=bool, index=val.index)
-        test["test"] = pd.Series(True, dtype=bool, index=test.index)
         
-        data = pd.concat([train, val, test])
-        data = data[["train", "val", "test", "label"]]
-        # Fill NaN values using where to avoid FutureWarning from fillna downcasting
-        for col in ["train", "val", "test"]:
-            data[col] = data[col].where(data[col].notna(), False).astype(bool)
-        data.index.name = None
-        return data
+        # First, separate test set at case level to avoid data leakage
+        grouped = data.groupby(by=["case_id", "label"], as_index=False).first()[["case_id", "label"]]
+        train_val_grouped, test_grouped = train_test_split(
+            grouped, test_size=self.test_frac, random_state=42
+        )
+        
+        # Get all slides for test cases
+        test_cases = set(test_grouped["case_id"])
+        test_mask = data["case_id"].isin(test_cases)
+        test_slides = set(data[test_mask]["slide_id"].values)
+        
+        # Get train+val cases (as array for KFold)
+        train_val_cases = train_val_grouped["case_id"].unique()
+        
+        # Use KFold to split train+val into train and val
+        kf = KFold(n_splits=self.folds, shuffle=True, random_state=42)
+        train_val_indices = list(kf.split(train_val_cases))[fold_idx]
+        train_case_indices, val_case_indices = train_val_indices
+        
+        train_cases = set(train_val_cases[train_case_indices])
+        val_cases = set(train_val_cases[val_case_indices])
+        
+        # Get slides for train and val cases
+        train_mask = data["case_id"].isin(train_cases)
+        val_mask = data["case_id"].isin(val_cases)
+        train_slides = set(data[train_mask]["slide_id"].values)
+        val_slides = set(data[val_mask]["slide_id"].values)
+        
+        # Create splits DataFrame with slide_id as index
+        # Get unique slide_id -> label mapping (in case of duplicates, take first)
+        slide_label_map = data[["slide_id", "label"]].drop_duplicates(subset="slide_id").set_index("slide_id")["label"]
+        
+        all_slides = data["slide_id"].unique()
+        splits_df = pd.DataFrame(index=all_slides)
+        splits_df["train"] = splits_df.index.isin(train_slides)
+        splits_df["val"] = splits_df.index.isin(val_slides)
+        splits_df["test"] = splits_df.index.isin(test_slides)
+        splits_df["label"] = slide_label_map
+        
+        return splits_df
 
     def __check_csv(self):
         """Checks if the CSV file contains the required columns"""
@@ -56,20 +74,21 @@ class SplitManager:
 
     def create_splits(self):
         """Creates splits for the dataset"""
-        for i in tqdm(range(self.folds)):
-            #We have two options
-            output_path = f"{self.splits_dir}/{self.output_name}/"
-            splits_bool = self.__create_split()
-            os.makedirs(output_path, exist_ok=True) #Creates folder
+        output_path = f"{self.splits_dir}/{self.output_name}/"
+        os.makedirs(output_path, exist_ok=True)
+        
+        for i in range(self.folds):
+            splits_bool = self.__create_split(i)
             splits_bool.drop(columns=["label"]).to_csv(f"{output_path}/splits_{i}_bool.csv")
+            
+            # Create summary
             summary = splits_bool.value_counts().reset_index()
             summary.loc[summary.train, "split"] = "train"
             summary.loc[summary.val, "split"] = "val"
             summary.loc[summary.test, "split"] = "test"
             summary = summary[["split", "label", "count"]]
             summary = summary.sort_values(by=["split", "label"])
-            summary = summary.pivot(index = "label", columns="split", values="count"
-                                    ).reset_index()
+            summary = summary.pivot(index="label", columns="split", values="count").reset_index()
             summary = summary[["label", "train", "val", "test"]]
             summary = summary.rename(columns={"label": ""})
             summary.to_csv(f"{output_path}/splits_{i}_descriptor.csv", index=False)
