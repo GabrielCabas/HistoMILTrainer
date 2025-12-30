@@ -23,8 +23,6 @@ if __name__ == "__main__":
     parser.add_argument("--csv_path", type=str, required=True)
     parser.add_argument("--results_dir", type=str, default="./temp_dir/")
     parser.add_argument("--pretrained_model", type=str, default = "uni_v2")
-    parser.add_argument("--mlflow_dir", type=str, default="~/mlflow")
-    parser.add_argument("--mlflow_exp", type=str, default=None)
     parser.add_argument("--epochs", type=int, default = 3)
     parser.add_argument("--learning_rate", type=float, default = 4e-4)
     parser.add_argument("--model", type=str, default="abmil")
