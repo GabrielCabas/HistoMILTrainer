@@ -25,7 +25,7 @@ if __name__ == "__main__":
     parser.add_argument("--feature_extractor", type=str, default = "uni_v2")
     parser.add_argument("--epochs", type=int, default = 3)
     parser.add_argument("--learning_rate", type=float, default = 4e-4)
-    parser.add_argument("--model", type=str, default="abmil")
+    parser.add_argument("--mil", type=str, default="abmil")
     parser.add_argument("--use_class_weights", type=bool, default=True)
     args = parser.parse_args()
     
@@ -35,10 +35,10 @@ if __name__ == "__main__":
     csv_path = os.path.realpath(args.csv_path)
     results_dir = os.path.realpath(args.results_dir)
 
-    if args.model == "clam": #CLAM needs it
+    if args.mil == "clam": #CLAM needs it
         BATCH_SIZE = 1
 
-    print("Using:", args.feature_extractor, "With: ", args.model)
+    print("Using:", args.feature_extractor, "With: ", args.mil)
     os.makedirs(results_dir, exist_ok=True)
 
     dataset_csv = pd.read_csv(csv_path)
@@ -78,18 +78,18 @@ if __name__ == "__main__":
     print("Batches test:", len(test_loader))
     print("Importing model")
 
-    model = import_model(args.model, args.feature_extractor).to(device)
+    mil = import_model(args.mil, args.feature_extractor).to(device)
 
-    print(model)
+    print(mil)
     print("Training")
-    trained_model, train_metrics = train(model, train_loader,
+    trained_model, train_metrics = train(mil, train_loader,
                                          val_loader, results_dir,
                                          args.learning_rate,
                                          args.fold, args.epochs,
                                          class_weights = class_weights,
-                                         model_name = args.model)
+                                         model_name = args.mil)
     print("Testing")
-    test_metrics = test(trained_model, test_loader, class_weights = class_weights, model_name = args.model)
+    test_metrics = test(trained_model, test_loader, class_weights = class_weights, model_name = args.mil)
     print("Exporting metrics")
     train_metrics = pd.json_normalize(train_metrics)
     test_metrics = pd.json_normalize(test_metrics)
