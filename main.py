@@ -7,8 +7,7 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 import numpy as np
-from histomil import H5Dataset, seed_torch, get_weights, train, test, import_model
-from histomil.datasets import variable_patches_collate_fn
+from histomil import H5Dataset, seed_torch, get_weights, train, test, import_model, variable_patches_collate_fn
 
 SEED = 2
 BATCH_SIZE = 16

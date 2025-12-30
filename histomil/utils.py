@@ -6,7 +6,6 @@ import os
 import numpy as np
 import torch
 import random
-from sklearn.utils.class_weight import compute_class_weight
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
