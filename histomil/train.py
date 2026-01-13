@@ -5,10 +5,13 @@ from histomil.utils import EarlyStopping
 from sklearn.metrics import roc_auc_score, accuracy_score, confusion_matrix, precision_recall_curve, classification_report,f1_score
 import numpy as np
 from tqdm import tqdm
+import random
+import os
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def train(model, train_loader, val_loader, results_dir, learning_rate, fold, epochs, patience = 2, stop_epoch = 2, class_weights = None, model_name = None):
+def train(model, train_loader, val_loader, results_dir, learning_rate, fold, epochs, patience = 2,
+    stop_epoch = 2, class_weights = None, model_name = None):
     """
     Train function
     """
@@ -31,6 +34,9 @@ def train(model, train_loader, val_loader, results_dir, learning_rate, fold, epo
         "val_auc": 0.0,
         "val_acc": 0.0,
     }
+
+    # Generate checkpoint name once, outside the loop
+    output_name = os.path.abspath(f"{results_dir}/{fold}-{random.randint(1000000,9999999)}-checkpoint.pt")
 
     for epoch in range(epochs):
         # Training
@@ -125,8 +131,7 @@ def train(model, train_loader, val_loader, results_dir, learning_rate, fold, epo
         print(f"Epoch {epoch+1}/{epochs} | "
             f"Train Loss: {train_loss:.4f}.Train AUC: {train_auc:.4f}, Train Acc: {train_acc:.4f} | "
             f"Val Loss: {val_loss:.4f}, Val AUC: {val_auc:.4f}, Val Acc: {val_acc:.4f}")
-
-        early_stopping(epoch, val_loss, model, ckpt_name=f"{results_dir}/{fold}-checkpoint.pt")
+        early_stopping(epoch, val_loss, model, ckpt_name=output_name)
 
         # Save best epoch metrics
         if early_stopping.best_epoch == epoch:
@@ -144,8 +149,8 @@ def train(model, train_loader, val_loader, results_dir, learning_rate, fold, epo
             print("Early stopping triggered.")
             break
 
-    model.load_state_dict(torch.load(f"{results_dir}/{fold}-checkpoint.pt"))
-    return model, best_metrics
+    model.load_state_dict(torch.load(output_name))
+    return model, best_metrics, output_name
 
 def test(model, test_loader, class_weights = None, model_name = None):
     """Test function: Evaluates clam model with optimal threshold selection by F1 macro."""
@@ -189,38 +194,14 @@ def test(model, test_loader, class_weights = None, model_name = None):
     # List contains scalars (variable patches mode)
     all_outputs = np.array(all_outputs)
     all_labels = np.array(all_labels)
-
     auc = roc_auc_score(all_labels, all_outputs)
-
-    # Finding threshold
-    best_f1_macro = 0
-    best_threshold = 0.5
-    thresholds = np.linspace(0, 1, 101)
-
-    for thresh in thresholds:
-        preds = (all_outputs >= thresh).astype(int)
-        f1_macro = f1_score(all_labels, preds, average='macro')
-        if f1_macro > best_f1_macro:
-            best_f1_macro = f1_macro
-            best_threshold = thresh
-
-    print(f"Optimal threshold for max F1 macro: {best_threshold:.3f} with F1 macro: {best_f1_macro:.3f}")
-
-    pred_labels = (all_outputs >= best_threshold).astype(int)
-    cm = confusion_matrix(all_labels, pred_labels)
+    pred_labels = (all_outputs >= 0.5).astype(int)
     accuracy = accuracy_score(all_labels, pred_labels)
-
-    print(f"Test AUC: {auc:.4f}")
-    print(f"Test Accuracy (with optimal threshold): {accuracy:.4f}")
-    print("Confusion Matrix:")
-    print(cm)
-    print("Classification Report:")
-    print(classification_report(all_labels, pred_labels, digits=4))
+    f1_macro = f1_score(all_labels, pred_labels, average='macro')
 
     metrics = {
         "test_auc": auc,
         "test_acc": accuracy,
-        "optimal_threshold": best_threshold,
-        "f1_macro": best_f1_macro
+        "f1_macro": f1_macro
     }
     return metrics
