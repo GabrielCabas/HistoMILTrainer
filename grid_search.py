@@ -40,7 +40,7 @@ def parse_args():
     parser.add_argument("--csv_path", type=str, required=True)
     parser.add_argument("--results_dir", type=str, default="./temp_dir/")
     parser.add_argument("--feature_extractor", type=str, default="uni_v2")
-    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--epochs", type=int, default=2)
     parser.add_argument("--learning_rate", type=float, default=4e-4)
     parser.add_argument("--mil", type=str, default="abmil")
     parser.add_argument("--use_class_weights", type=bool, default=True)
@@ -144,6 +144,7 @@ if __name__ == "__main__":
                 args.epochs,
                 class_weights=class_weights,
                 model_name=args.mil,
+                params=params,
             )
             train_metrics.update({
                 "model_checkpoint": checkpoint,

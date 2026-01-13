@@ -11,7 +11,7 @@ import os
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def train(model, train_loader, val_loader, results_dir, learning_rate, fold, epochs, patience = 2,
-    stop_epoch = 2, class_weights = None, model_name = None):
+    stop_epoch = 2, class_weights = None, model_name = None, params = None):
     """
     Train function
     """
@@ -36,7 +36,11 @@ def train(model, train_loader, val_loader, results_dir, learning_rate, fold, epo
     }
 
     # Generate checkpoint name once, outside the loop
-    output_name = os.path.abspath(f"{results_dir}/{fold}-{random.randint(1000000,9999999)}-checkpoint.pt")
+    if params is not None:
+        string_params = "_".join([f"{k}={v}" for k, v in params.items()])
+    else:
+        string_params = ""
+    output_name = os.path.abspath(f"{results_dir}/{fold}-{string_params}-checkpoint.pt")
 
     for epoch in range(epochs):
         # Training
