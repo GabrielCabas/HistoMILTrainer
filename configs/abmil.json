@@ -1,6 +1,6 @@
 {
 	"embed_dim": [256, 512, 1024],
-	"num_fc_layers": [1, 2, 3],
-	"dropout": [0, 0.25, 0.5],
-	"attn_dim": [256, 384, 512, 1024]
+	"num_fc_layers": [1, 2],
+	"dropout": [0.25, 0.5],
+	"attn_dim": [256, 512, 1024]
 }
