@@ -202,5 +202,7 @@ if __name__ == "__main__":
         predictions.to_csv(f"{results_dir}/predictions_{fold_idx}.csv", index=False)
 
     test_results_df = pd.DataFrame(test_results)
+    test_results_df["feature_extractor"] = args.feature_extractor
+    test_results_df["mil"] = args.mil
     print("Test results:\n", test_results_df)
     test_results_df.to_csv(f"{results_dir}/test_results.csv", index=False)
