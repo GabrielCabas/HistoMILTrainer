@@ -1,10 +1,10 @@
-# HistoMIL
+# HistoMILTrainer
 
-A library for training Multi-Instance Learning (MIL) architectures from [MIL-Lab](https://github.com/mahmoodlab/MIL-Lab) on histology datasets. HistoMIL provides a unified interface to train and evaluate various state-of-the-art MIL models for whole slide image (WSI) analysis.
+A library for training Multi-Instance Learning (MIL) architectures from [MIL-Lab](https://github.com/mahmoodlab/MIL-Lab) on histology datasets. HistoMILTrainer provides a unified interface to train and evaluate various state-of-the-art MIL models for whole slide image (WSI) analysis.
 
 ## Overview
 
-HistoMIL offers a streamlined framework to train MIL architectures on histology data. It supports multiple architectures from MIL-Lab, including:
+HistoMILTrainer offers a streamlined framework to train MIL architectures on histology data. It supports multiple architectures from MIL-Lab, including:
 
 - **ABMIL** - Attention-based Multiple Instance Learning
 - **CLAM** - Clustering-constrained Attention Multiple instance learning
@@ -35,13 +35,13 @@ cd MIL-Lab
 pip install -e . # Will install all dependences
 pip install git+https://github.com/oval-group/smooth-topk  # Required for CLAM
 cd ..
-# Clone HistoMIL to train the architectures
-git clone https://github.com/digenoma-lab/HistoMIL
-cd HistoMIL
+# Clone HistoMILTrainer to train the architectures
+git clone https://github.com/digenoma-lab/HistoMILTrainer
+cd HistoMILTrainer
 pip install -e . # Will install this package
 ```
 
-**Note**: HistoMIL requires MIL-Lab to be installed and accessible. Make sure MIL-Lab is properly configured in your environment. MIL-Lab is not available on PyPI and must be installed separately.
+**Note**: HistoMILTrainer requires MIL-Lab to be installed and accessible. Make sure MIL-Lab is properly configured in your environment. MIL-Lab is not available on PyPI and must be installed separately.
 
 ## Quick Start
 
@@ -177,7 +177,7 @@ The `make_splits.py` script generates:
 
 ## Citation
 
-If you use HistoMIL in your research, please cite the original MIL-Lab paper and the specific architecture papers you use.
+If you use HistoMILTrainer in your research, please cite the original MIL-Lab paper and the specific architecture papers you use.
 
 ## License
 
