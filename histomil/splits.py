@@ -8,13 +8,25 @@ from sklearn.model_selection import train_test_split, KFold
 
 class SplitManager:
     """Splits manager class"""
-    def __init__(self, args):
-        self.csv_path = args.csv_path
-        self.target = args.target
-        self.test_frac = args.test_frac
-        self.splits_dir = args.splits_dir
-        self.output_name = args.output_name
-        self.folds = args.folds
+    def __init__(self, csv_path, output_name, folds=10, splits_dir="./splits", 
+                 test_frac=0.2, target="target"):
+        """
+        Initialize SplitManager.
+        
+        Args:
+            csv_path: Path to the CSV file containing the dataset
+            output_name: Name for the output directory
+            folds: Number of cross-validation folds (default: 10)
+            splits_dir: Directory where splits will be saved (default: "./splits")
+            test_frac: Fraction of data to use for testing (default: 0.2)
+            target: Name of the target column in the CSV (default: "target")
+        """
+        self.csv_path = csv_path
+        self.target = target
+        self.test_frac = test_frac
+        self.splits_dir = splits_dir
+        self.output_name = output_name
+        self.folds = folds
         self.output_path = f"{self.splits_dir}/{self.output_name}/"
         os.makedirs(self.output_path, exist_ok=True)
         self.__check_csv()
