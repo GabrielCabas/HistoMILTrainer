@@ -45,6 +45,8 @@ conda activate histomil
 pip install -e .
 ```
 
+After installation, the CLI commands `histomil-splits` and `histomil-grid` will be available in your PATH.
+
 The `environment.yml` file includes:
 - Python 3.10
 - MIL-Lab (from GitHub)
@@ -61,6 +63,8 @@ cd HistoMILTrainer
 # Install with pip (MIL-Lab will be installed automatically as a dependency)
 pip install -e .
 ```
+
+After installation, the CLI commands `histomil-splits` and `histomil-grid` will be available in your PATH.
 
 **Note**: When installing with pip, dependencies are automatically installed from the `pyproject.toml` configuration. The package will install:
 - MIL-Lab (from GitHub: `https://github.com/GabrielCabas/MIL-Lab.git`)
@@ -103,7 +107,7 @@ Create a CSV file with columns:
 ### 3. Generate Splits
 
 ```bash
-python make_splits.py \
+histomil-splits \
   --csv_path ./data/dataset.csv \
   --splits_dir ./splits/ \
   --output_name my_task \
@@ -112,13 +116,14 @@ python make_splits.py \
   --target target
 ```
 
-**Note**: The `--target` argument specifies the column name for labels (default: "target"). Splits are stratified at the case level to ensure no data leakage between train/val/test sets.
+**Note**: The `histomil-splits` command is available after installing the package. The `--target` argument specifies the column name for labels (default: "target"). Splits are stratified at the case level to ensure no data leakage between train/val/test sets.
 
-### 4. Train a Model
+### 4. Train Models with Grid Search
+
+Use `histomil-grid` to perform hyperparameter optimization and train models across all folds:
 
 ```bash
-python main.py \
-  --fold 0 \
+histomil-grid \
   --features_path ./features/ \
   --splits_dir ./splits/my_task/ \
   --csv_path ./splits/my_task/dataset.csv \
@@ -126,10 +131,11 @@ python main.py \
   --feature_extractor uni_v2 \
   --results_dir ./results/abmil/ \
   --epochs 20 \
-  --learning_rate 4e-4
+  --learning_rate 4e-4 \
+  --grid_params configs/abmil.json
 ```
 
-**Note**: The `--csv_path` should point to the `dataset.csv` file generated in the splits directory (e.g., `./splits/my_task/dataset.csv`).
+**Note**: The `histomil-grid` command performs grid search across parameter combinations, trains models for all folds, selects the best parameters, and evaluates on the test set. The `--csv_path` should point to the `dataset.csv` file generated in the splits directory (e.g., `./splits/my_task/dataset.csv`).
 
 ### 5. Run Multiple Folds (SLURM)
 
@@ -143,20 +149,40 @@ sbatch run_clam.sh
 
 ## Usage
 
-### Command Line Arguments
+### Available CLI Commands
+
+After installation, the following commands are available:
+
+- `histomil-splits`: Generate train/validation/test splits
+- `histomil-grid`: Perform grid search with hyperparameter optimization
+
+### Split Generation (`histomil-splits`)
 
 ```bash
-python main.py \
-  --fold <fold_number>              # Cross-validation fold (0-9)
-  --features_path <path>            # Path to H5 feature files directory
-  --splits_dir <path>               # Directory containing split files
-  --csv_path <path>                 # Path to dataset CSV (usually in splits_dir)
-  --mil <model_name>                # MIL architecture: abmil, clam, dsmil, dftd, etc.
-  --feature_extractor <name>        # Feature extractor: uni_v2, etc.
+histomil-splits \
+  --csv_path <path>                 # Path to dataset CSV (required)
+  --output_name <name>              # Output directory name (required)
+  --folds <int>                     # Number of folds (default: 10)
+  --splits_dir <path>               # Output directory (default: ./splits)
+  --test_frac <float>               # Test set fraction (default: 0.2)
+  --target <column_name>            # Target column name (default: target)
+```
+
+### Grid Search (`histomil-grid`)
+
+```bash
+histomil-grid \
+  --features_path <path>            # Path to H5 feature files directory (required)
+  --splits_dir <path>               # Directory containing split files (required)
+  --csv_path <path>                 # Path to dataset CSV (required)
+  --mil <model_name>                # MIL architecture: abmil, clam, dsmil, dftd, etc. (default: abmil)
+  --feature_extractor <name>        # Feature extractor: uni_v2, etc. (default: uni_v2)
   --results_dir <path>              # Output directory for results (default: ./temp_dir/)
-  --epochs <int>                    # Number of training epochs (default: 3)
+  --epochs <int>                    # Number of training epochs (default: 10)
   --learning_rate <float>           # Learning rate (default: 4e-4)
+  --folds <int>                     # Number of cross-validation folds (default: 10)
   --use_class_weights <bool>        # Use class weights (default: True)
+  --grid_params <path>               # Path to grid search parameters JSON (default: configs/abmil.json)
 ```
 
 ### Supported Models
@@ -184,12 +210,12 @@ HistoMILTrainer/
 │   ├── datasets.py     # Dataset classes
 │   ├── train.py        # Training and evaluation functions
 │   ├── splits.py       # Split management
+│   ├── grid_search.py  # Grid search class
+│   ├── cli.py          # Command-line interface
 │   └── utils.py        # Utility functions
 ├── tests/              # Test suite
 │   └── test_import.py  # Import tests
 ├── configs/            # Model configuration files
-├── main.py             # Main training script
-├── make_splits.py      # Split generation script
 ├── environment.yml     # Conda environment configuration
 └── pyproject.toml      # Package metadata and dependencies
 ```
@@ -204,10 +230,34 @@ Training produces:
 
 ### Split Generation Output
 
-The `make_splits.py` script generates:
+The `histomil-splits` command generates:
 - `dataset.csv`: Processed dataset with case_id, slide_id, and label columns
 - `splits_{fold}_bool.csv`: Boolean splits for each fold (train/val/test columns)
 - `splits_{fold}_descriptor.csv`: Summary statistics for each split
+
+### Grid Search
+
+You can perform grid search with hyperparameter optimization using:
+
+```bash
+histomil-grid \
+  --features_path ./features/ \
+  --splits_dir ./splits/my_task/ \
+  --csv_path ./splits/my_task/dataset.csv \
+  --mil abmil \
+  --feature_extractor uni_v2 \
+  --results_dir ./results/abmil/ \
+  --epochs 20 \
+  --learning_rate 4e-4 \
+  --grid_params configs/abmil.json
+```
+
+The `histomil-grid` command performs:
+- Grid search across all parameter combinations
+- Cross-validation training for each combination
+- Selection of best parameters based on validation AUC
+- Testing of best models on test set
+- Output of results, predictions, and best parameters
 
 
 **Note**: MIL-Lab is automatically installed as a dependency when you install HistoMILTrainer. The `import_model` function relies on `src.builder.create_model` from MIL-Lab, which should be available after installation.
