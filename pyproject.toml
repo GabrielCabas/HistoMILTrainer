@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "histomil"
-version = "0.1.0"
+version = "1.1"
 description = "A library for training Multi-Instance Learning (MIL) architectures from MIL-Lab on histology datasets"
 authors = ["Gabriel Cabas <gabriel.cabas@outlook.com>"]
 readme = "README.md"
@@ -24,7 +24,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.10"
 src = {git = "https://github.com/GabrielCabas/MIL-Lab.git"} #Update when PR is merged
-smooth-topk = {git = "https://github.com/oval-group/smooth-topk.git"} # Required for CLAM
+topk = {git = "https://github.com/oval-group/smooth-topk.git"} # Required for CLAM
 seaborn = "*"
 matplotlib = "*"
 
