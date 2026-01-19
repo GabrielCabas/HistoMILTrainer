@@ -1,6 +1,5 @@
 {
     "embed_dim": [256, 512, 1024],
     "num_attention_layers": [1, 2],
-    "num_heads": [4, 8],
-    "topk": [4, 8, 16]
+    "num_heads": [4, 8]
 }

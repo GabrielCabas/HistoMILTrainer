@@ -2,7 +2,5 @@
     "embed_dim":  [256, 512, 1024],
     "attention_dim": [256, 512, 1024],
     "dropout": [0.25, 0.5],
-    "attention_dropout": [0.25, 0.5],
-    "num_group": [8, 16],
-    "bag_weight": [0.7, 0.9]
+    "attention_dropout": [0.25, 0.5]
 }

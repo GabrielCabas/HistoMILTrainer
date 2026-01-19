@@ -1,6 +1,5 @@
 {
     "embed_dim": [256, 512, 1024],
-    "n_fc_layers": [1, 2],
     "dropout": [0.25, 0.5],
     "n_attention_layers": [2, 4]
 }
