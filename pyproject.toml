@@ -5,8 +5,8 @@ description = "A library for training Multi-Instance Learning (MIL) architecture
 authors = ["Gabriel Cabas <gabriel.cabas@outlook.com>"]
 readme = "README.md"
 license = "MIT"
-homepage = "https://github.com/digenoma-lab/HistoMIL"
-repository = "https://github.com/digenoma-lab/HistoMIL"
+homepage = "https://github.com/digenoma-lab/HistoMILTrainer"
+repository = "https://github.com/digenoma-lab/HistoMILTrainer"
 keywords = ["histology", "multiple-instance-learning", "deep-learning", "medical-imaging", "wsi"]
 classifiers = [
     "Development Status :: 3 - Alpha",
