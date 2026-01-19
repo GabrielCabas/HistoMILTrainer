@@ -9,3 +9,4 @@ dependencies:
     - git+https://github.com/GabrielCabas/MIL-Lab.git #Replace it with original when the PR is merged
     - seaborn
     - matplotlib
+    - pytest
