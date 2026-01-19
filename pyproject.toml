@@ -24,6 +24,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "3.10"
+src = {git = "https://github.com/GabrielCabas/MIL-Lab.git"} #Update when PR is merged
 seaborn = "*"
 matplotlib = "*"
 
