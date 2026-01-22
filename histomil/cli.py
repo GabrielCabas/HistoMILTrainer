@@ -86,3 +86,25 @@ def grid_search():
     )
     grid_search.run()
 
+def predict():
+    """CLI entry point for grid search."""
+    from histomil.predict import Predictor
+    parser = argparse.ArgumentParser(description="MIL Predict")
+    parser.add_argument("--features_path", type=str, required=True)
+    parser.add_argument("--weights_path", type=str, required=True)
+    parser.add_argument("--csv_path", type=str, required=True)
+    parser.add_argument("--results_dir", type=str, default="./")
+    parser.add_argument("--feature_extractor", type=str, default="virchow2")
+    parser.add_argument("--mil", type=str, default="abmil")
+    parser.add_argument("--params_path", type=str, required=True)
+    args = parser.parse_args()
+    predictor = Predictor(
+        csv_path=args.csv_path,
+        weights_path=args.weights_path,
+        features_path=args.features_path,
+        feature_extractor=args.feature_extractor,
+        results_dir=args.results_dir,
+        mil=args.mil,
+        params_path=args.params_path,
+    )
+    predictor.run()

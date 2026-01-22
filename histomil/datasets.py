@@ -48,3 +48,27 @@ class H5Dataset(Dataset):
             features = torch.from_numpy(f["features"][:])
         label = torch.tensor(row[self.label_col], dtype=torch.float32)
         return features, label
+
+class H5DatasetPredict(Dataset):
+    def __init__(self, feats_path, df, num_features = 1536, variable_patches = True):
+        self.df = df
+        self.feats_path = feats_path
+        self.num_features = num_features
+        self.variable_patches = variable_patches
+
+    @staticmethod
+    def drop_extension(filepath):
+        filename = Path(filepath)
+        return filename.stem
+
+    def __len__(self):
+        return len(self.df)
+        
+    def __getitem__(self, idx):
+        row = self.df.iloc[idx]
+        h5_path = os.path.join(self.feats_path, self.drop_extension(row['slide_id']) + '.h5')
+        if not os.path.exists(h5_path):
+            raise FileNotFoundError(f"Feature file not found: {h5_path}")
+        with h5py.File(h5_path, "r") as f:
+            features = torch.from_numpy(f["features"][:])
+        return features
