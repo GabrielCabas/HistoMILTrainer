@@ -43,6 +43,7 @@ mypy = "^0.991"
 # histomil-splits = "histomil.cli:splits"
 histomil-splits = "histomil.cli:make_splits"
 histomil-grid = "histomil.cli:grid_search"
+histomil-predict = "histomil.cli:predict"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
