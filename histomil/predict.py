@@ -56,7 +56,7 @@ class Predictor:
                     features = features.to(device)  # Shape: (num_patches, feature_dim)
                     # Add batch dimension: (1, num_patches, feature_dim)
                     features = features.unsqueeze(0)
-                    if self.mil in ["clam", "dfdt"]:
+                    if self.mil in ["clam", "dftd"]:
                         logits, _ = model(features, 
                                           torch.tensor([1]).to(device),
                                           CrossEntropyLoss().to(device))
