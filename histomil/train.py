@@ -2,11 +2,11 @@
 import torch
 from torch import nn, optim
 from histomil.utils import EarlyStopping
-from sklearn.metrics import roc_auc_score, accuracy_score, confusion_matrix, precision_recall_curve, classification_report,f1_score
+from sklearn.metrics import roc_auc_score, accuracy_score, confusion_matrix, precision_recall_curve, classification_report, f1_score
 import numpy as np
 from tqdm import tqdm
-import random
 import os
+import logging
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -15,15 +15,34 @@ def train(model, train_loader, val_loader, results_dir, learning_rate, fold, epo
     """
     Train function
     """
+    logger = logging.getLogger(__name__)
+    
+    logger.info("=" * 60)
+    logger.info(f"Starting training for fold {fold}")
+    logger.info("=" * 60)
+    logger.info(f"Training parameters:")
+    logger.info(f"  - Epochs: {epochs}")
+    logger.info(f"  - Learning rate: {learning_rate}")
+    logger.info(f"  - Patience: {patience}")
+    logger.info(f"  - Stop epoch: {stop_epoch}")
+    logger.info(f"  - Model: {model_name}")
+    logger.info(f"  - Device: {device}")
+    logger.info(f"  - Train batches: {len(train_loader)}")
+    logger.info(f"  - Val batches: {len(val_loader)}")
+    
     if class_weights is not None:
         weights_tensor = torch.tensor(class_weights, dtype=torch.float).to(device)
         criterion = nn.CrossEntropyLoss(weight = weights_tensor)
-        print(criterion)
+        logger.info(f"Using weighted CrossEntropyLoss with weights: {class_weights}")
     else:
         criterion = nn.CrossEntropyLoss()
+        logger.info("Using standard CrossEntropyLoss")
+    
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+    logger.debug(f"Optimizer: AdamW with lr={learning_rate}")
+    
     early_stopping = EarlyStopping(patience=patience, stop_epoch=stop_epoch, verbose=True)
-    print("Start training")
+    logger.info("Start training")
 
     best_metrics = {
         "epoch": 0,
@@ -41,8 +60,11 @@ def train(model, train_loader, val_loader, results_dir, learning_rate, fold, epo
     else:
         string_params = ""
     output_name = os.path.abspath(f"{results_dir}/{fold}-{string_params}-checkpoint.pt")
+    logger.info(f"Checkpoint will be saved to: {output_name}")
 
     for epoch in range(epochs):
+        logger.info("-" * 60)
+        logger.info(f"Epoch {epoch+1}/{epochs}")
         # Training
         model.train()
         train_loss = 0.
@@ -91,6 +113,7 @@ def train(model, train_loader, val_loader, results_dir, learning_rate, fold, epo
 
         train_auc = roc_auc_score(train_labels, train_preds)
         train_acc = accuracy_score(train_labels, np.array(train_preds) > 0.5)
+        logger.debug(f"Training metrics computed: {len(train_labels)} samples")
 
         # Validate
         model.eval()
@@ -131,14 +154,16 @@ def train(model, train_loader, val_loader, results_dir, learning_rate, fold, epo
         val_loss /= len(val_loader)
         val_auc = roc_auc_score(val_labels, val_preds)
         val_acc = accuracy_score(val_labels, np.array(val_preds) > 0.5)
+        logger.debug(f"Validation metrics computed: {len(val_labels)} samples")
 
-        print(f"Epoch {epoch+1}/{epochs} | "
-            f"Train Loss: {train_loss:.4f}.Train AUC: {train_auc:.4f}, Train Acc: {train_acc:.4f} | "
+        logger.info(f"Epoch {epoch+1}/{epochs} | "
+            f"Train Loss: {train_loss:.4f}, Train AUC: {train_auc:.4f}, Train Acc: {train_acc:.4f} | "
             f"Val Loss: {val_loss:.4f}, Val AUC: {val_auc:.4f}, Val Acc: {val_acc:.4f}")
         early_stopping(epoch, val_loss, model, ckpt_name=output_name)
 
         # Save best epoch metrics
         if early_stopping.best_epoch == epoch:
+            logger.info(f"✓ New best model at epoch {epoch+1} (val_loss: {val_loss:.4f})")
             best_metrics = {
                 "epoch": epoch + 1,
                 "train_loss": train_loss,
@@ -150,25 +175,40 @@ def train(model, train_loader, val_loader, results_dir, learning_rate, fold, epo
             }
 
         if early_stopping.early_stop:
-            print("Early stopping triggered.")
+            logger.info("Early stopping triggered.")
             break
 
+    logger.info(f"Loading best model from checkpoint: {output_name}")
     model.load_state_dict(torch.load(output_name))
+    logger.info("=" * 60)
+    logger.info(f"✓ Training completed for fold {fold}")
+    logger.info(f"Best epoch: {best_metrics['epoch']}, Best val AUC: {best_metrics['val_auc']:.4f}")
+    logger.info("=" * 60)
     return model, best_metrics, output_name
 
 def test(model, test_loader, class_weights = None, model_name = None):
     """Test function: Evaluates clam model with optimal threshold selection by F1 macro."""
+    logger = logging.getLogger(__name__)
+    
+    logger.info("=" * 60)
+    logger.info("Starting model evaluation on test set")
+    logger.info("=" * 60)
+    logger.info(f"Test batches: {len(test_loader)}")
+    
     if class_weights is not None:
         weights_tensor = torch.tensor(class_weights, dtype=torch.float).to(device)
         criterion = nn.CrossEntropyLoss(weight = weights_tensor)
-        print(criterion)
+        logger.info(f"Using weighted CrossEntropyLoss with weights: {class_weights}")
     else:
         criterion = nn.CrossEntropyLoss()
+        logger.info("Using standard CrossEntropyLoss")
+    
     model.eval()
     all_labels, all_outputs = [], []
     correct = 0
     total = 0
 
+    logger.info("Processing test batches")
     with torch.no_grad():
         for batch in tqdm(test_loader, desc="Testing"):
             # Handle variable patches: batch is a list of (features, label) tuples
@@ -198,14 +238,24 @@ def test(model, test_loader, class_weights = None, model_name = None):
     # List contains scalars (variable patches mode)
     all_outputs = np.array(all_outputs)
     all_labels = np.array(all_labels)
+    
+    logger.info(f"Computing metrics on {len(all_labels)} test samples")
     auc = roc_auc_score(all_labels, all_outputs)
     pred_labels = (all_outputs >= 0.5).astype(int)
     accuracy = accuracy_score(all_labels, pred_labels)
     f1_macro = f1_score(all_labels, pred_labels, average='macro')
+    
+    logger.info(f"Test accuracy: {correct}/{total} = {correct/total:.4f}")
 
     metrics = {
         "test_auc": auc,
         "test_acc": accuracy,
         "f1_macro": f1_macro
     }
+    
+    logger.info("=" * 60)
+    logger.info("✓ Test evaluation completed")
+    logger.info(f"Test metrics: AUC={auc:.4f}, Acc={accuracy:.4f}, F1={f1_macro:.4f}")
+    logger.info("=" * 60)
+    
     return metrics, all_outputs, all_labels

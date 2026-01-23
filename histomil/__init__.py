@@ -5,5 +5,5 @@ from .train import train, test
 from .models import import_model
 from .grid_search import GridSearch
 from .predict import Predictor
-
-__all__ = ["SplitManager", "H5Dataset", "H5DatasetPredict", "variable_patches_collate_fn", "seed_torch", "get_weights", "train", "test", "EarlyStopping", "import_model", "GridSearch", "Predictor"]
+from .heatmap import HeatmapVisualizer
+__all__ = ["SplitManager", "H5Dataset", "H5DatasetPredict", "variable_patches_collate_fn", "seed_torch", "get_weights", "train", "test", "EarlyStopping", "import_model", "GridSearch", "Predictor", "HeatmapVisualizer"]
