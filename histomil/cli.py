@@ -1,6 +1,19 @@
 """Command-line interface for HistoMILTrainer."""
 import argparse
 import os
+import logging
+import sys
+
+
+def setup_logging(level=logging.INFO):
+    """Configure logging for the application."""
+    logging.basicConfig(
+        level=level,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        stream=sys.stdout
+    )
+
 
 def make_splits():
     from histomil.splits import SplitManager
@@ -12,7 +25,12 @@ def make_splits():
     parser.add_argument("--test_frac", type=float, default=0.2)
     parser.add_argument("--target", type=str, default="target")
     parser.add_argument("--output_name", type=str, required=True)
+    parser.add_argument("--log_level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     args = parser.parse_args()
+    
+    # Setup logging
+    log_level = getattr(logging, args.log_level.upper())
+    setup_logging(level=log_level)
 
     split_manager = SplitManager(
         csv_path=args.csv_path,
@@ -40,7 +58,12 @@ def grid_search():
     parser.add_argument("--mil", type=str, default="abmil")
     parser.add_argument("--use_class_weights", type=bool, default=True)
     parser.add_argument("--grid_params", type=str, default=None)
+    parser.add_argument("--log_level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     args = parser.parse_args()
+    
+    # Setup logging
+    log_level = getattr(logging, args.log_level.upper())
+    setup_logging(level=log_level)
 
     # Determine grid_params_path: use provided path or default to package config
     if args.grid_params:
@@ -98,7 +121,12 @@ def predict():
     parser.add_argument("--feature_extractor", type=str, default="virchow2")
     parser.add_argument("--mil", type=str, default="abmil")
     parser.add_argument("--params_path", type=str, required=True)
+    parser.add_argument("--log_level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     args = parser.parse_args()
+    
+    # Setup logging
+    log_level = getattr(logging, args.log_level.upper())
+    setup_logging(level=log_level)
     predictor = Predictor(
         csv_path=args.csv_path,
         weights_path=args.weights_path,
@@ -119,7 +147,12 @@ def heatmap():
     parser.add_argument("--features_folder", type=str, required=True)
     parser.add_argument("--attn_scores_folder", type=str, required=True)
     parser.add_argument("--results_dir", type=str, default="./")
+    parser.add_argument("--log_level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     args = parser.parse_args()
+    
+    # Setup logging
+    log_level = getattr(logging, args.log_level.upper())
+    setup_logging(level=log_level)
     heatmap_visualizer = HeatmapVisualizer(
         slide_id=args.slide_id,
         slide_folder=args.slide_folder,
