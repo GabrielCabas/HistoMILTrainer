@@ -95,9 +95,13 @@ class Predictor:
                     else:
                         logits, attn = model(features, return_attention=True)
                     attn_scores = attn["attention"].squeeze().cpu().numpy()
-                    if len(attn_scores.shape) == 2:
+                    
+                    if self.mil == "wikg":
                         #It's a geo attention score, must be averaged over the patches
                         attn_scores = attn_scores.mean(axis = 0)
+                    if self.mil == "dsmil":
+                        # Only keep the attention score for the second class (positive)
+                        attn_scores = attn_scores[:, 1]
                     probs = torch.softmax(logits["logits"], dim=1)
                     all_outputs.append(probs[0, 1].cpu().item())  # prob. clase 1
                     all_attentions.append(attn_scores)
