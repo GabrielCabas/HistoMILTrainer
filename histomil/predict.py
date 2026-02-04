@@ -95,7 +95,7 @@ class Predictor:
                     else:
                         logits, attn = model(features, return_attention=True)
                     attn_scores = attn["attention"].squeeze().cpu().numpy()
-                    if self.mil == "wikg" or self.mil == "transformer":
+                    if self.mil == "wikg":
                         #It's a geo attention score, must be averaged over the patches
                         attn_scores = attn_scores.mean(axis = 0)
                     if self.mil == "dsmil":
@@ -105,6 +105,11 @@ class Predictor:
                         # Transmil returns a N^2 length array of attention scores.
                         # We need to crop it to the number of patches.
                         attn_scores = attn_scores[:features.shape[1]]
+                    if self.mil == "transformer":
+                        # We use cls token (row) as the attention score
+                        attn_scores = attn_scores[0, 1:]
+                    print("attn_scores.shape", attn_scores.shape)
+                    print("features.shape", features.shape)
                     probs = torch.softmax(logits["logits"], dim=1)
                     all_outputs.append(probs[0, 1].cpu().item())  # prob. clase 1
                     all_attentions.append(attn_scores)
